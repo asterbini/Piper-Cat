@@ -15,21 +15,6 @@ import json
 
 # Settings
 
-# Select box
-class VoiceSelect(Enum):
-    Alice: str = 'Alice'
-    Eve: str = 'Eve'
-    Amy: str = 'Amy'
-    Sonya: str = 'Sonya'
-    Stephany: str = 'Stephany'
-    Dave: str = 'Dave'
-    Stephan: str = 'Stephan'
-    Joe: str = 'Joe'
-    Ruslan: str = 'Ruslan'
-    Riccardo: str = 'Riccardo'
-    Paola: str = 'Paola'
-
-
 def check_and_update_voices():
     file_path = '/app/voices.json'
     if not os.path.exists(file_path):
@@ -58,6 +43,7 @@ def get_voices():
         voices = json.load(F)
     return { f"{v['name'].capitalize()} ({v['language']['name_native']})" : (v['key'], None) for v in voices.values() }
 
+# Dinamic Enum
 VoiceSelect = Enum("VoiceSelect", { k:k for k in get_voices() })
 
 class piperCatSettings(BaseModel):
@@ -79,8 +65,7 @@ def has_cyrillic(text):
 
 def remove_special_characters(text):
     # Define the pattern to match special characters excluding punctuation, single and double quotation marks, and Cyrillic characters
-    pattern = r'[^a-zA-Z0-9\s.,!?\'"а-яА-Я]'  # Matches any character that is not alphanumeric, whitespace, or specific punctuation, including Cyrillic characters
-    pattern = r'[^a-zA-Z0-9À-ÖØ-öø-ÿ\s.,!?\'"а-яА-Я]'  # Matches any character that is not alphanumeric, whitespace, or specific punctuation, including Cyrillic characters
+    pattern = r'[^a-zA-Z0-9À-ÖØ-öø-ÿ\s.,!?\'"а-яА-Я]'  # added accented letters
     
     # Replace special characters with an empty string
     clean_text = re.sub(pattern, '', text)
@@ -146,19 +131,6 @@ def build_piper_command(llm_message: str, cat):
         selected_voice = "Ruslan"
 
     # Voice mapping dictionary
-    voice_mapping = {
-        "Alice": ("en_US-lessac-high", None),
-        "Dave": ("en_US-ryan-high", None),
-        "Ruslan": ("ru_RU-ruslan-medium", None),
-        "Eve": ("en_GB-vctk-medium", "99"),
-        "Amy": ("en_US-amy-medium", None),
-        "Stephany": ("en_US-hfc_female-medium", None),
-        "Stephan": ("en_US-hfc_male-medium", None),
-        "Joe": ("en_US-joe-medium", None),
-        "Sonya": ("en_US-ljspeech-medium", None),
-        "Riccardo": ("it_IT-riccardo-x_low", None),
-        "Paola": ("it_IT-paola-medium", None),
-    }
     voice_mapping = get_voices()
 
     # Set default values if selected_voice is not in the mapping
