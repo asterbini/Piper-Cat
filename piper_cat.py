@@ -14,14 +14,16 @@ import shlex
 import json
 
 # Settings
+VOICES_DIR='/app/piper'
 
 def check_and_update_voices():
-    file_path = '/app/voices.json'
+    file_path = f'{VOICES_DIR}/voices.json'
     if not os.path.exists(file_path):
+        os.makedirs(VOICES_DIR,exist_ok=True)
         try:
             # Run the command
             result = subprocess.run(
-                ["piper", "--update-voices", "-m", "en_US-ryan-high"],
+                ["piper", "--data-dir", VOICES_DIR, "--download-dir", VOICES_DIR, "--update-voices", "-m", "en_US-ryan-high"],
                 check=True,  # This will raise a CalledProcessError if the command fails
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE
@@ -39,7 +41,7 @@ def check_and_update_voices():
 
 def get_voices():
     check_and_update_voices()
-    with open("/app/voices.json") as F:
+    with open(f'{VOICES_DIR}/voices.json') as F:
         voices = json.load(F)
     return { f"{v['name'].capitalize()} ({v['language']['name_native']})" : (v['key'], None) for v in voices.values() }
 
@@ -65,7 +67,7 @@ def has_cyrillic(text):
 
 def remove_special_characters(text):
     # Define the pattern to match special characters excluding punctuation, single and double quotation marks, and Cyrillic characters
-    pattern = r'[^a-zA-Z0-9À-ÖØ-öø-ÿ\s.,!?\'"а-яА-Я]'  # added accented letters
+    pattern = r'[^a-zA-Z0-9À-ÖØ-öø-ÿ\s.,!?\'"а-яА-Я]'  # Matches any character that is not alphanumeric, whitespace, or specific punctuation, including Cyrillic characters
     
     # Replace special characters with an empty string
     clean_text = re.sub(pattern, '', text)
@@ -118,17 +120,15 @@ def build_piper_command(llm_message: str, cat):
 
     cleaned_text = remove_special_characters(llm_message)
     piper_cmd = [f"echo {shlex.quote(cleaned_text)} | ", "piper"]
+    piper_cmd.extend(["--download-dir", VOICES_DIR])
+    piper_cmd.extend(["--data-dir", VOICES_DIR])
 
     # Load the settings
     settings = cat.mad_hatter.get_plugin().load_settings()
     selected_voice = settings.get("Voice")
 
-    # Check if selected_voice is None or not in the specified list
-    #if selected_voice not in ["Alice", "Dave", "Ruslan", "Eve", "Amy", "Stephany", "Stephan", "Joe", "Sonya", "Riccardo", "Valeria", "Paola"]:
-    #    selected_voice = "Paola"
-    
     if has_cyrillic(llm_message):
-        selected_voice = "Ruslan"
+        selected_voice = "Ruslan (Русский)"
 
     # Voice mapping dictionary
     voice_mapping = get_voices()
